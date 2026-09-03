@@ -10,13 +10,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Extract project
         run: unzip -q ReverseCalcKeyboard_v3_GitHub.zip -d project
 
       - name: Build APK
         run: |
           cd project
-          gradle assembleDebug
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
