@@ -18,21 +18,17 @@ jobs:
 
       - name: Extract project
         run: unzip -q ReverseCalcKeyboard_v4_FIXED_FINAL.zip -d project
-
-      - name: Find Gradle wrapper
-        run: |
-          GRADLEW=$(find project -name gradlew -type f | head -n 1)
-          echo "Found Gradle wrapper: $GRADLEW"
-          chmod +x "$GRADLEW"
-          echo "GRADLEW=$GRADLEW" >> "$GITHUB_ENV"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
 
       - name: Build APK
         run: |
-          cd "$(dirname "$GRADLEW")"
-          "$PWD/gradlew" assembleDebug
+          cd project
+          gradle assembleDebug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ReverseCalcKeyboard-APK
-          path: '**/build/outputs/apk/debug/*.apk'
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: ReverseCalcKeyboard-APK
