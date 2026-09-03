@@ -1,4 +1,4 @@
-7name: Build Keyboard APK
+name: Build Keyboard APK
 
 on:
   workflow_dispatch:
