@@ -17,7 +17,7 @@ jobs:
           java-version: '17'
 
       - name: Extract project
-        ReverseCalcKeyboard_V4_GBOARD_LAYOUT.zip
+        run: unzip -q ReverseCalcKeyboard_V4_GBOARD_LAYOUT.zip -d project
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
