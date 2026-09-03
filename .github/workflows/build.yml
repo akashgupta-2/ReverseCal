@@ -20,28 +20,42 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
+      - name: Extract project
+        shell: bash
+        run: |
+          echo "Files in repository:"
+          ls -la
+
+          ZIP=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
+
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: No project ZIP found!"
+            exit 1
+          fi
+
+          echo "Extracting: $ZIP"
+          unzip -o "$ZIP" -d extracted
+
+          echo "Extracted files:"
+          find extracted -maxdepth 4 -type f | sort
 
       - name: Find Gradle project
         id: project
         shell: bash
         run: |
-          PROJECT_DIR=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1)
+          SETTINGS=$(find extracted \
+            -type f \( -name "settings.gradle.kts" -o -name "settings.gradle" \) \
+            | head -n 1)
 
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "ERROR: No Gradle project found!"
-            echo "Repository contents:"
-            find . -maxdepth 4 -type f | sort
+          if [ -z "$SETTINGS" ]; then
+            echo "ERROR: settings.gradle.kts not found!"
+            find extracted -maxdepth 6 -type f | sort
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$PROJECT_DIR")
-          PROJECT_DIR="${PROJECT_DIR#./}"
+          PROJECT_DIR=$(dirname "$SETTINGS")
 
-          echo "Found Gradle project at: $PROJECT_DIR"
+          echo "Gradle project found at: $PROJECT_DIR"
           echo "project_dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Build toraco-key
@@ -53,7 +67,7 @@ jobs:
         id: apk
         shell: bash
         run: |
-          APK=$(find "${{ steps.project.outputs.project_dir }}" \
+          APK=$(find extracted \
             -type f \
             -name "app-debug.apk" \
             | head -n 1)
