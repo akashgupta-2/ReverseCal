@@ -20,21 +20,61 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Extract project
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Extract toraco-key project
         shell: bash
         run: |
-          echo "Files in repository:"
-          ls -la
-
-          ZIP=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
+          ZIP=$(find . -maxdepth 1 -type f -name "toraco-key-*.zip" | head -n 1)
 
           if [ -z "$ZIP" ]; then
-            echo "ERROR: No project ZIP found!"
+            echo "ERROR: toraco-key ZIP not found!"
+            ls -la
             exit 1
           fi
 
-          echo "Extracting: $ZIP"
-          unzip -o "$ZIP" -d extracted
+          echo "Found: $ZIP"
+
+          mkdir -p project
+          unzip -o "$ZIP" -d project
+
+          echo "Project files:"
+          find project -maxdepth 3 -type f | sort
+
+      - name: Verify Gradle project
+        run: |
+          test -f project/settings.gradle.kts
+          test -f project/build.gradle.kts
+          test -f project/app/build.gradle.kts
+
+          echo "Gradle project verified."
+
+      - name: Build toraco-key
+        working-directory: project
+        run: |
+          gradle assembleDebug --no-daemon
+
+      - name: Verify APK
+        run: |
+          APK="project/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not generated!"
+            find project -type f -name "*.apk"
+            exit 1
+          fi
+
+          echo "APK found: $APK"
+
+      - name: Upload toraco-key APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: toraco-key-V5.1-APK
+          path: project/app/build/outputs/apk/debug/app-debug.apk          name: toraco-key-V5.1-APK
+          path: project/app/build/outputs/apk/debug/app-debug.apk          unzip -o "$ZIP" -d extracted
 
           echo "Extracted files:"
           find extracted -maxdepth 4 -type f | sort
