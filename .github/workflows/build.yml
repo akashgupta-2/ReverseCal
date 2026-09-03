@@ -8,7 +8,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -16,21 +17,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Extract project
-        run: unzip -q ReverseCalcKeyboard_V4_GBOARD_LAYOUT_GBOARD_MATCHED_NAVSPACE.zip -d project
-
-      - name: Set up Gradle
+      - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
+      - name: Extract project
+        run: unzip -q ReverseCalcKeyboard_V4_GBOARD_LAYOUT_MODE_SWITCH.zip -d project
+
       - name: Build APK
-        run: |
-          cd project
-          gradle assembleDebug
+        working-directory: project
+        run: gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ReverseCalcKeyboard-APK
-          path: project/**/build/outputs/apk/debug/*.apk
+          path: project/app/build/outputs/apk/debug/app-debug.apk
