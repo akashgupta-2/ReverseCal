@@ -1,4 +1,4 @@
-name: Build Keyboard APK
+name: Build toraco-key APK
 
 on:
   workflow_dispatch:
@@ -25,12 +25,11 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build Debug APK
-        run: |
-          gradle assembleDebug --no-daemon
+      - name: Build toraco-key
+        run: gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ReverseCalcKeyboard-V5-APK
+          name: toraco-key-APK
           path: app/build/outputs/apk/debug/app-debug.apk
