@@ -17,32 +17,66 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Extract Toraco Key project
+        run: |
+          set -e
+
+          ZIP=$(find . -maxdepth 1 -type f -name 'ToracoKey_V5.3_STABLE.zip' | head -n 1)
+
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: ToracoKey_V5.3_STABLE.zip not found"
+            ls -la
+            exit 1
+          fi
+
+          echo "Found ZIP: $ZIP"
+
+          rm -rf project
+          mkdir -p project
+
+          unzip -q "$ZIP" -d project
+
+          echo "Extracted project:"
+          find project -maxdepth 3 -type f | sort
+
+      - name: Verify Gradle project
+        run: |
+          set -e
+
+          if [ ! -f "project/settings.gradle.kts" ]; then
+            echo "ERROR: settings.gradle.kts not found"
+            find project -type f | sort
+            exit 1
+          fi
+
+          if [ ! -d "project/app" ]; then
+            echo "ERROR: app directory not found"
+            find project -maxdepth 3 -type d | sort
+            exit 1
+          fi
+
+          echo "Gradle project verified successfully."
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: Check project
-        run: |
-          echo "Current directory:"
-          pwd
-          echo "Project files:"
-          ls -la
-          echo "App directory:"
-          ls -la app
-
       - name: Build APK
+        working-directory: project
         run: |
-          gradle --version
-          gradle assembleDebug --no-daemon
+          set -e
+          gradle assembleDebug --no-daemon --stacktrace
 
       - name: Find APK
         run: |
-          APK=$(find . -type f -name "*.apk" | head -n 1)
+          set -e
+
+          APK=$(find project -type f -name "*.apk" | head -n 1)
 
           if [ -z "$APK" ]; then
             echo "ERROR: APK not found"
-            find . -type f | grep -E '\.apk$|build|outputs' || true
+            find project -type f | grep -E '\.apk$|build|outputs' || true
             exit 1
           fi
 
