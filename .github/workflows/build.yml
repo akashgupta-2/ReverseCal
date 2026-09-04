@@ -23,7 +23,46 @@ jobs:
           ls -la app
           echo
           echo "Gradle files:"
-          find . -maxdepth 3 -type f -name "build.gradle.kts" -o -name "settings.gradle.kts" -print
+          find . -maxdepth 3 -type f \( -name "build.gradle.kts" -o -name "settings.gradle.kts" \) -print
 
       - name: Set up Java 17
-       
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Verify Gradle project
+        run: |
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          echo "Gradle project verified."
+
+      - name: Build APK
+        run: |
+          gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Find APK
+        run: |
+          APK=$(find app/build/outputs -type f -name "*.apk" | head -n 1)
+
+          if [ -z "$APK" ]; then
+            echo "ERROR: APK not found"
+            find app/build -type f | sort
+            exit 1
+          fi
+
+          echo "APK found: $APK"
+          cp "$APK" toraco-key-v5.3.apk
+
+      - name: Upload Toraco Key V5.3 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: toraco-key-v5.3-APK
+          path: toraco-key-v5.3.apk
+          if-no-files-found: error
