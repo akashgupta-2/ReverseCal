@@ -21,7 +21,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Find and extract project ZIP
+      - name: Find and extract Toraco Key ZIP
         shell: bash
         run: |
           set -e
@@ -29,10 +29,12 @@ jobs:
           echo "Repository contents:"
           ls -la
 
-          ZIP=$(find . -maxdepth 2 -type f -name 'ToracoKey_V5.3*.zip' -print -quit)
+          ZIP=$(find . -maxdepth 2 -type f \
+            -name 'ToracoKey_V5.3*.zip' \
+            -print -quit)
 
           if [ -z "$ZIP" ]; then
-            echo "ERROR: ToracoKey V5.3 ZIP not found."
+            echo "ERROR: Toraco Key V5.3 ZIP not found."
             find . -maxdepth 3 -type f
             exit 1
           fi
@@ -44,54 +46,60 @@ jobs:
 
           unzip -q "$ZIP" -d extracted
 
-          echo "Extracted contents:"
-          find extracted -maxdepth 4 -type f | head -200
+          echo "Extracted project:"
+          find extracted -maxdepth 4 -type f | sort
 
       - name: Locate Gradle project
         shell: bash
         run: |
           set -e
 
-          PROJECT_DIR=$(find extracted \
-            -type f \
+          SETTINGS=$(find extracted -type f \
             \( -name "settings.gradle.kts" -o -name "settings.gradle" \) \
             -print -quit)
 
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "ERROR: settings.gradle or settings.gradle.kts not found."
-            echo "Extracted files:"
+          if [ -z "$SETTINGS" ]; then
+            echo "ERROR: Gradle settings file not found."
             find extracted -maxdepth 6 -type f
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$PROJECT_DIR")
+          PROJECT_DIR=$(dirname "$SETTINGS")
 
-          echo "Gradle project found at:"
+          echo "Gradle project found:"
           echo "$PROJECT_DIR"
+
+          if [ ! -d "$PROJECT_DIR/app" ]; then
+            echo "ERROR: app directory not found."
+            find "$PROJECT_DIR" -maxdepth 3 -type f
+            exit 1
+          fi
 
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
-      - name: Verify Gradle project
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Verify project
         shell: bash
         run: |
           set -e
 
           cd "$PROJECT_DIR"
 
-          echo "Project directory:"
+          echo "Current directory:"
           pwd
 
           echo "Project files:"
           ls -la
 
-          if [ -f "./gradlew" ]; then
-            chmod +x ./gradlew
-            echo "Gradle wrapper found."
-          else
-            echo "ERROR: gradlew not found."
-            find . -maxdepth 3 -type f
-            exit 1
-          fi
+          echo "Gradle version:"
+          gradle --version
+
+          echo "Android app:"
+          ls -la app
 
       - name: Build APK
         shell: bash
@@ -100,9 +108,7 @@ jobs:
 
           cd "$PROJECT_DIR"
 
-          chmod +x ./gradlew
-
-          ./gradlew assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace
 
       - name: Find APK
         shell: bash
@@ -116,8 +122,13 @@ jobs:
 
           if [ -z "$APK" ]; then
             echo "ERROR: APK not found."
-            echo "Build directory contents:"
-            find "$PROJECT_DIR" -type f | grep -E 'build|apk|outputs' || true
+
+            echo "Searching build outputs:"
+            find "$PROJECT_DIR" \
+              -type f \
+              \( -path "*/build/*" -o -name "*.apk" \) \
+              -print || true
+
             exit 1
           fi
 
