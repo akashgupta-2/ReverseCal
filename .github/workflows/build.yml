@@ -18,8 +18,8 @@ jobs:
           java-version: '17'
 
       - name: Extract project
-        run: |
-          unzip -q toraco-key-V5.2-GBOARD-V5-layout.zip -d project
+  run: |
+    unzip -q ReverseCalcKeyboard_V5.3_GBOARD_LAYOUT_FIX.zip -d project
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
