@@ -1,7 +1,10 @@
-name: Build ToracoKey V5.3
+name: Build toraco-key V5.3
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
@@ -12,44 +15,72 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
+      - name: Find and extract toraco-key ZIP
+        shell: bash
+        run: |
+          set -e
+
+          ZIP=$(find . -maxdepth 1 -type f \
+            \( -iname 'toracokey*.zip' -o -iname 'toraco-key*.zip' -o -iname '*.zip' \) \
+            -print -quit)
+
+          if [ -z "$ZIP" ]; then
+            echo "ERROR: No ZIP file found"
+            ls -la
+            exit 1
+          fi
+
+          echo "Found ZIP: $ZIP"
+
+          rm -rf extracted
+          mkdir -p extracted
+
+          unzip -q "$ZIP" -d extracted
+
+          echo "Extracted ZIP contents:"
+          find extracted -maxdepth 5 -type f | head -200
 
       - name: Locate Gradle project
         shell: bash
         run: |
           set -e
 
-          SETTINGS=$(find . -type f \
-            \( -name "settings.gradle.kts" -o -name "settings.gradle" \) \
-            -not -path "./.git/*" \
-            | head -n 1)
+          GRADLEW=$(find extracted -type f -name gradlew -print -quit)
 
-          if [ -z "$SETTINGS" ]; then
-            echo "ERROR: settings.gradle(.kts) not found."
-            find . -maxdepth 5 -type f | sort
-            exit 1
+          if [ -n "$GRADLEW" ]; then
+            PROJECT_DIR=$(dirname "$GRADLEW")
+          else
+            SETTINGS=$(find extracted -type f \
+              \( -name settings.gradle -o -name settings.gradle.kts \) \
+              -print -quit)
+
+            if [ -z "$SETTINGS" ]; then
+              echo "ERROR: No Gradle project found"
+              echo "Searching extracted files:"
+              find extracted -type f | head -300
+              exit 1
+            fi
+
+            PROJECT_DIR=$(dirname "$SETTINGS")
           fi
-
-          PROJECT_DIR=$(dirname "$SETTINGS")
 
           echo "Gradle project found at:"
           echo "$PROJECT_DIR"
 
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Verify project
         shell: bash
         run: |
           set -e
-
           cd "$PROJECT_DIR"
 
           echo "Project directory:"
@@ -58,50 +89,39 @@ jobs:
           echo "Project files:"
           ls -la
 
-          test -f settings.gradle.kts -o -f settings.gradle
-          test -f build.gradle.kts -o -f build.gradle
-          test -d app
-
-          echo "Project verification successful."
-
       - name: Build APK
         shell: bash
         run: |
           set -e
-
           cd "$PROJECT_DIR"
 
-          gradle clean assembleDebug \
-            --no-daemon \
-            --stacktrace
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleDebug --no-daemon
+          else
+            gradle assembleDebug --no-daemon
+          fi
 
       - name: Find APK
         shell: bash
         run: |
           set -e
 
-          APK=$(find "$PROJECT_DIR/app/build/outputs" \
-            -type f \
-            -name "*.apk" \
-            | head -n 1)
+          APK=$(find "$PROJECT_DIR" -type f -name '*.apk' -print -quit)
 
           if [ -z "$APK" ]; then
-            echo "ERROR: APK was not generated."
-
-            echo "Build output:"
-            find "$PROJECT_DIR/app/build" -type f | sort || true
-
+            echo "ERROR: APK not found"
+            find "$PROJECT_DIR" -type f | grep -E '\.(apk|aab)$' || true
             exit 1
           fi
 
           echo "APK found:"
           echo "$APK"
 
-          cp "$APK" "$GITHUB_WORKSPACE/toraco-key-v5.3.apk"
+          cp "$APK" toraco-key-V5.3.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: toraco-key-v5.3-APK
-          path: toraco-key-v5.3.apk
-          if-no-files-found: error
+          name: toraco-key-V5.3-APK
+          path: toraco-key-V5.3.apk
