@@ -58,28 +58,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: toraco-key-V5.3-APK
-          path: toraco-key-V5.3.apk        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-
-      - name: Build APK
-        run: |
-          cd "$PROJECT_DIR"
-          gradle assembleDebug
-
-      - name: Find APK
-        run: |
-          APK=$(find "$PROJECT_DIR" -type f -name "*.apk" | head -n 1)
-          if [ -z "$APK" ]; then
-            echo "ERROR: APK not found"
-            find "$PROJECT_DIR" -type f | grep -E '\.apk$|build|outputs' || true
-            exit 1
-          fi
-          echo "APK found: $APK"
-          cp "$APK" toraco-key-V5.3.apk
-
-      - name: Upload toraco-key V5.3 APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: toraco-key-V5.3-APK
-          path: toraco-key-V5.3.apk        
+          path: toraco-key-V5.3.apk
