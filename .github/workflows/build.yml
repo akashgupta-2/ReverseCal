@@ -19,7 +19,7 @@ jobs:
 
       - name: Extract project
         run: |
-          unzip -q toraco-key-V5-GBOARD-layout.zip -d project
+          unzip -q toraco-key-V5.2-GBOARD-V5-layout.zip -d project
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
