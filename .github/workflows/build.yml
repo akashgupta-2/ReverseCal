@@ -1,4 +1,4 @@
-name: Build toraco-key V5.2
+name: Build toraco-key V5.3
 
 on:
   workflow_dispatch:
@@ -18,8 +18,8 @@ jobs:
           java-version: '17'
 
       - name: Extract project
-  run: |
-    unzip -q ReverseCalcKeyboard_V5.3_GBOARD_LAYOUT_FIX.zip -d project
+        run: |
+          unzip -q ReverseCalcKeyboard_V5.3_GBOARD_LAYOUT_FIX.zip -d project
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -35,6 +35,9 @@ jobs:
         run: |
           APK=$(find project/final -type f -name "*.apk" | head -n 1)
 
+          if [ -z "$APK" ]; then
+            echo "ERROR: APK not found"
+           
           if [ -z "$APK" ]; then
             echo "ERROR: APK not found"
             find project/final -type f | grep -E '\.(apk|aab)$' || true
