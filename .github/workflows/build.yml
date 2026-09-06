@@ -1,114 +1,41 @@
-name: Build ToracoKey V5.4
+ai_question:
+  enabled: true
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+  trigger:
+    question_mark: true
+    question_words:
+      - what
+      - why
+      - how
+      - when
+      - where
+      - who
+      - which
+      - is
+      - are
+      - can
+      - explain
+      - define
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+  answer:
+    enabled: true
+    show_in_suggestions: true
+    max_suggestions: 3
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  actions:
+    tap_answer: insert
+    long_press_answer: copy
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
+keyboard:
+  layout: qwerty
 
-      - name: Find and extract ToracoKey ZIP
-        shell: bash
-        run: |
-          set -e
+  rows:
+    - "qwertyuiop"
+    - "asdfghjkl"
+    - "zxcvbnm"
 
-          ZIP=$(find . -maxdepth 1 -type f \
-            \( -iname 'ToracoKey*.zip' -o -iname 'toraco-key*.zip' -o -iname '*.zip' \) \
-            -print -quit)
-
-          if [ -z "$ZIP" ]; then
-            echo "ERROR: No ToracoKey ZIP found"
-            ls -la
-            exit 1
-          fi
-
-          echo "Found ZIP: $ZIP"
-
-          rm -rf extracted
-          mkdir -p extracted
-          unzip -q "$ZIP" -d extracted
-
-          echo "ZIP extracted successfully."
-
-      - name: Locate Gradle project
-        shell: bash
-        run: |
-          set -e
-
-          SETTINGS=$(find extracted -type f \
-            \( -name settings.gradle.kts -o -name settings.gradle \) \
-            -print -quit)
-
-          if [ -z "$SETTINGS" ]; then
-            echo "ERROR: No Gradle project found"
-            find extracted -type f | head -300
-            exit 1
-          fi
-
-          PROJECT_DIR=$(dirname "$SETTINGS")
-
-          echo "Gradle project: $PROJECT_DIR"
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Verify project
-        shell: bash
-        run: |
-          set -e
-          cd "$PROJECT_DIR"
-
-          echo "Project directory:"
-          pwd
-
-          echo "Project files:"
-          ls -la
-
-      - name: Build ToracoKey V5.4
-        shell: bash
-        run: |
-          set -e
-          cd "$PROJECT_DIR"
-
-          if [ -f ./gradlew ]; then
-            chmod +x ./gradlew
-            ./gradlew assembleDebug --no-daemon
-          else
-            gradle assembleDebug --no-daemon
-          fi
-
-      - name: Find APK
-        shell: bash
-        run: |
-          set -e
-
-          APK=$(find "$PROJECT_DIR" -type f -name '*.apk' -print -quit)
-
-          if [ -z "$APK" ]; then
-            echo "ERROR: APK not found"
-            find "$PROJECT_DIR" -type f | grep -E '\.(apk|aab)$' || true
-            exit 1
-          fi
-
-          echo "APK found: $APK"
-          cp "$APK" "$GITHUB_WORKSPACE/ToracoKey-V5.4.apk"
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ToracoKey-V5.4-APK
-          path: ToracoKey-V5.4.apk
+  alignment:
+    third_row:
+      gboard: true
+      start_below: "s"
+      end_below: "k"
