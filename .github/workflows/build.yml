@@ -1,4 +1,4 @@
-name: Build ToracoKey V5.8
+name: Build ToracoKey V5.9
 
 on:
   workflow_dispatch:
@@ -6,40 +6,53 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Find and extract ToracoKey ZIP
+      - name: Find ToracoKey ZIP
         shell: bash
         run: |
           set -e
 
-          ZIP=$(find . -maxdepth 1 -type f \
-            \( -iname 'ToracoKey*.zip' -o -iname 'toraco-key*.zip' -o -iname '*.zip' \) \
+          ZIP=$(find "$GITHUB_WORKSPACE" -maxdepth 1 \
+            -type f \
+            -iname 'ToracoKey_V5.9*.zip' \
             -print -quit)
 
           if [ -z "$ZIP" ]; then
-            echo "ERROR: No ToracoKey ZIP found"
+            echo "ERROR: ToracoKey V5.9 ZIP not found"
             ls -la
             exit 1
           fi
 
-          echo "Found ZIP: $ZIP"
+          echo "Using ZIP: $ZIP"
+          echo "ZIP_PATH=$ZIP" >> "$GITHUB_ENV"
+
+      - name: Extract project
+        shell: bash
+        run: |
+          set -e
 
           rm -rf extracted
           mkdir -p extracted
-          unzip -q "$ZIP" -d extracted
+
+          unzip -q "$ZIP_PATH" -d extracted
+
+          echo "Extraction complete."
 
       - name: Locate Gradle project
         shell: bash
@@ -51,30 +64,31 @@ jobs:
             -print -quit)
 
           if [ -z "$SETTINGS" ]; then
-            echo "ERROR: No Gradle project found"
+            echo "ERROR: Gradle settings file not found"
             find extracted -type f | head -300
             exit 1
           fi
 
           PROJECT_DIR=$(dirname "$SETTINGS")
 
-          echo "Gradle project: $PROJECT_DIR"
+          echo "Project directory: $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build ToracoKey V5.8
+      - name: Build Debug APK
         shell: bash
         run: |
           set -e
+
           cd "$PROJECT_DIR"
 
-          if [ -f ./gradlew ]; then
+          if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
-            ./gradlew assembleDebug --no-daemon
+            ./gradlew clean assembleDebug --no-daemon
           else
-            gradle assembleDebug --no-daemon
+            gradle clean assembleDebug --no-daemon
           fi
 
       - name: Find APK
@@ -82,18 +96,24 @@ jobs:
         run: |
           set -e
 
-          APK=$(find "$PROJECT_DIR" -type f -name '*.apk' -print -quit)
+          APK=$(find "$PROJECT_DIR" \
+            -type f \
+            -name '*.apk' \
+            -path '*/outputs/apk/debug/*' \
+            -print -quit)
 
           if [ -z "$APK" ]; then
-            echo "ERROR: APK not found"
+            echo "ERROR: Debug APK not found"
+            find "$PROJECT_DIR" -type f -name '*.apk'
             exit 1
           fi
 
           echo "APK found: $APK"
-          cp "$APK" "$GITHUB_WORKSPACE/ToracoKey-V5.8.apk"
+          cp "$APK" "$GITHUB_WORKSPACE/ToracoKey-V5.9-debug.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ToracoKey-V5.8-APK
-          path: ToracoKey-V5.8.apk
+          name: ToracoKey-V5.9-debug
+          path: ToracoKey-V5.9-debug.apk
+          if-no-files-found: error
