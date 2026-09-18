@@ -1,4 +1,4 @@
-name: Build ToracoKey V5.4
+name: Build ToracoKey V5.5
 
 on:
   workflow_dispatch:
@@ -41,8 +41,6 @@ jobs:
           mkdir -p extracted
           unzip -q "$ZIP" -d extracted
 
-          echo "ZIP extracted successfully."
-
       - name: Locate Gradle project
         shell: bash
         run: |
@@ -66,19 +64,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Verify project
-        shell: bash
-        run: |
-          set -e
-          cd "$PROJECT_DIR"
-
-          echo "Project directory:"
-          pwd
-
-          echo "Project files:"
-          ls -la
-
-      - name: Build ToracoKey V5.4
+      - name: Build ToracoKey V5.5
         shell: bash
         run: |
           set -e
@@ -100,15 +86,14 @@ jobs:
 
           if [ -z "$APK" ]; then
             echo "ERROR: APK not found"
-            find "$PROJECT_DIR" -type f | grep -E '\.(apk|aab)$' || true
             exit 1
           fi
 
           echo "APK found: $APK"
-          cp "$APK" "$GITHUB_WORKSPACE/ToracoKey-V5.4.apk"
+          cp "$APK" "$GITHUB_WORKSPACE/ToracoKey-V5.5.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ToracoKey-V5.4-APK
-          path: ToracoKey-V5.4.apk
+          name: ToracoKey-V5.5-APK
+          path: ToracoKey-V5.5.apk
